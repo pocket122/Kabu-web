@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>モーゲージ vs オルカン 比較シミュレーター</title>
+<style>
+body{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;margin:0;background:#f5f7fb;color:#172033}
+main{max-width:1100px;margin:auto;padding:24px}
+h1{margin:0 0 8px}.sub{color:#667085}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin:20px 0}
+.card{background:white;border-radius:14px;padding:18px;box-shadow:0 2px 12px #0000000d}
+label{display:block;font-size:14px;margin:12px 0 6px}input{width:100%;box-sizing:border-box;padding:10px;border:1px solid #d0d5dd;border-radius:8px;font-size:16px}
+button{padding:11px 16px;border:0;border-radius:9px;background:#111827;color:white;cursor:pointer}
+.results{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}.metric{padding:14px;background:#f8fafc;border-radius:10px}.metric b{display:block;font-size:21px;margin-top:4px}
+.table{overflow:auto}table{width:100%;border-collapse:collapse;background:white}th,td{padding:10px;border-bottom:1px solid #eaecf0;text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:center}
+.note{font-size:13px;color:#667085;line-height:1.6}
+canvas{width:100%;height:320px}
+</style>
+</head>
+<body><main>
+<h1>モーゲージ vs オルカン</h1>
+<div class="sub">条件を変更して、長期の資産額を比較するシミュレーター</div>
+
+<div class="grid">
+<section class="card"><h2>共通条件</h2>
+<label>毎月積立額（円）<input id="monthly" type="number" value="30000" min="0" step="1000"></label>
+<label>運用年数<input id="years" type="number" value="40" min="1" max="100"></label>
+</section>
+<section class="card"><h2>オルカン</h2>
+<label>想定年利（%）<input id="annual" type="number" value="6" step="0.1"></label>
+<label>信託報酬等（年・%）<input id="allFee" type="number" value="0" step="0.01"></label>
+</section>
+<section class="card"><h2>モーゲージ</h2>
+<label>月利（%）<input id="monthlyRate" type="number" value="0.5" step="0.01"></label>
+<label>初期費用（返金なし・円）<input id="entry" type="number" value="1000000" min="0" step="10000"></label>
+<label>入金手数料（%）<input id="inFee" type="number" value="1" step="0.1"></label>
+<label>出金手数料（%）<input id="outFee" type="number" value="1" step="0.1"></label>
+</section>
+</div>
+<button onclick="calc()">再計算</button>
+<div class="card" style="margin:16px 0"><h2>結果</h2><div id="metrics" class="results"></div></div>
+<div class="card"><h2>推移</h2><canvas id="chart"></canvas></div>
+<div class="card" style="margin-top:16px"><h2>年別</h2><div class="table"><table><thead><tr><th>年</th><th>元本</th><th>オルカン</th><th>モーゲージ</th><th>差額</th></tr></thead><tbody id="rows"></tbody></table></div></div>
+<div class="card" style="margin-top:16px"><div class="note">
+※これは入力した利率・手数料をそのまま使った試算です。実際の運用結果やサービスの元本保証、税金、途中解約条件などは反映していません。<br>
+※モーゲージの初期費用は「返金されない費用」として最終受取額から差し引いています。毎月積立額とは別の支出として扱っています。
+</div></div>
+</main>
+<script>
+const yen=n=>new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY",maximumFractionDigits:0}).format(n);
+function vals(){
+ return {
+ monthly:+document.getElementById("monthly").value||0, years:Math.max(1,+document.getElementById("years").value||1),
+ annual:(+document.getElementById("annual").value||0)/100,
+ allFee:(+document.getElementById("allFee").value||0)/100,
+ mr:(+document.getElementById("monthlyRate").value||0)/100,
+ entry:+document.getElementById("entry").value||0,
+ inf:(+document.getElementById("inFee").value||0)/100,
+ outf:(+document.getElementById("outFee").value||0)/100
+ };
+}
+function calc(){
+ const v=vals(), a=v.monthly/0+0, rows=[], step=[];
+ let all=0,mort=0,principal=0,be=null;
+ for(let y=1;y<=v.years;y++){
+  for(let m=0;m<12;m++){
+   principal+=v.monthly;
+   all=(all+v.monthly)*(1+(v.annual-v.allFee)/12);
+   mort=(mort+v.monthly*(1-v.inf))*(1+v.mr);
+  }
+  const an=all, mn=mort*(1-v.outf)-v.entry, diff=mn-an;
+  rows.push({y,principal,an,mn,diff});
+  if(be===null&&diff>=0) be=y;
+ }
+ const last=rows.at(-1);
+ document.getElementById("metrics").innerHTML=[
+  ["オルカン最終",yen(last.an)],["モーゲージ最終",yen(last.mn)],
+  ["差額（モーゲージ−オルカン）",yen(last.diff)],
+  ["損益分岐点",be?be+"年目":"設定年数内なし"]
+ ].map(x=>'<div class="metric">'+x[0]+'<b>'+x[1]+'</b></div>').join("");
+ document.getElementById("rows").innerHTML=rows.map(r=>'<tr><td>'+r.y+'年</td><td>'+yen(r.principal)+'</td><td>'+yen(r.an)+'</td><td>'+yen(r.mn)+'</td><td>'+yen(r.diff)+'</td></tr>').join("");
+ draw(rows);
+}
+function draw(data){
+ const c=document.getElementById("chart"), d=devicePixelRatio||1, w=c.clientWidth*d,h=320*d;c.width=w;c.height=h;
+ const ctx=c.getContext("2d"), max=Math.max(...data.map(x=>Math.max(x.an,x.mn)),1), pad=42*d;
+ ctx.clearRect(0,0,w,h);ctx.font=12*d+"px system-ui";ctx.fillStyle="#667085";
+ for(let i=0;i<5;i++){let y=pad+(h-pad*1.5)*i/4;ctx.fillText(yen(max*(1-i/4)),4*d,y+4*d);ctx.strokeStyle="#e5e7eb";ctx.beginPath();ctx.moveTo(pad,y);ctx.lineTo(w-10*d,y);ctx.stroke();}
+ function line(key){ctx.beginPath();data.forEach((r,i)=>{let x=pad+(w-pad-10*d)*i/(data.length-1||1),y=h-pad-(h-pad*1.5)*(r[key]/max);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.strokeStyle=key==="an"?"#2563eb":"#dc2626";ctx.lineWidth=2*d;ctx.stroke();}
+ line("an");line("mn");
+}
+calc();
+window.addEventListener("resize",calc);
+</script>
+</body></html>
