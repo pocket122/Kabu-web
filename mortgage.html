@@ -1,56 +1,64 @@
 <!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>モーゲージ vs ドル預金 vs オルカン</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1000px;margin:auto;padding:24px 16px 48px}h1{font-size:25px;margin:0 0 8px}h2{font-size:18px}.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field{margin:9px 0}label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}input{width:100%;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:15px}.results{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.r{padding:14px;border-radius:10px;background:#f2f4f6}.r strong{display:block;font-size:20px;margin-top:5px}.small{font-size:12px;color:#777}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px;border-bottom:1px solid #eee;text-align:right}th:first-child,td:first-child{text-align:center}@media(max-width:700px){.grid,.results{grid-template-columns:1fr}main{padding:18px 12px}}
+*{box-sizing:border-box}body{margin:0;background:#f6f7f9;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1050px;margin:auto;padding:24px 16px 50px}h1{font-size:25px;margin:0 0 8px}h2{font-size:18px;margin:0 0 12px}.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:18px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.field{margin:7px 0}label{display:block;font-size:13px;font-weight:600;margin-bottom:5px}input{width:100%;padding:9px;border:1px solid #ccc;border-radius:8px;font-size:15px}.small{font-size:12px;color:#777;line-height:1.5}.results{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.r{padding:14px;border-radius:10px;background:#f2f4f6}.r strong{display:block;font-size:21px;margin-top:5px}table{width:100%;border-collapse:collapse;font-size:14px}th,td{padding:9px;border-bottom:1px solid #eee;text-align:right}th:first-child,td:first-child{text-align:center}.chart{height:300px;width:100%;display:block}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;margin:8px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;background:currentColor}.m{color:#555}.d{color:#1877d2}.a{color:#16834b}.scenario{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}.scenario button{padding:9px;border:1px solid #ccc;background:#fff;border-radius:8px;font-size:14px;cursor:pointer}.scenario button.active{border-color:#222;font-weight:700}@media(max-width:700px){.grid,.results{grid-template-columns:1fr}.scenario{grid-template-columns:repeat(2,1fr)}main{padding:18px 12px}}
 </style></head><body><main>
 <h1>モーゲージ vs ドル預金 vs オルカン</h1>
-<p>3つを同じ積立額・期間で比較。ドル建て商品は為替変動も円換算に反映します。</p>
+<p>円から投資した場合の最終資産を比較。ドル建て商品の為替リスクと、オルカンの株式リターン＋為替影響を分けて計算します。</p>
+
 <div class="card"><h2>共通条件</h2><div class="grid">
 <div class="field"><label>毎月積立額（円）</label><input id="monthly" type="number" value="30000" min="0"></div>
-<div class="field"><label>期間（年）</label><input id="years" type="number" value="10" min="1" max="60"></div>
+<div class="field"><label>運用期間（年）</label><input id="years" type="number" value="10" min="1" max="60"></div>
 <div class="field"><label>開始時 USD/JPY</label><input id="fx0" type="number" value="150" min="1" step=".1"></div>
-</div><div class="grid">
-<div class="field"><label>終了時 USD/JPY</label><input id="fx1" type="number" value="150" min="1" step=".1"></div>
-<div class="field"><label>入金手数料（%）※ドル系</label><input id="df" type="number" value="1" min="0" step=".1"></div>
-<div class="field"><label>出金手数料（%）※ドル系</label><input id="wf" type="number" value="1" min="0" step=".1"></div>
-</div></div>
+</div>
+<p class="small">終了時の為替は下のシナリオから選択できます。ドル建て商品は「円→ドル→円」の為替差を反映します。</p>
+<div class="scenario" id="scenarios"></div></div>
+
 <div class="card"><h2>モーゲージ</h2><div class="grid">
 <div class="field"><label>月利（%）</label><input id="mr" type="number" value=".5" step=".01"></div>
 <div class="field"><label>初期手数料（円）</label><input id="mi" type="number" value="1000000" min="0"></div>
-<div class="field"><label>計算</label><div class="small">月次複利。初期手数料は最終額から控除</div></div>
+<div class="field"><label>入出金手数料（%）</label><div class="small">入金・出金をそれぞれ適用</div><input id="mf" type="number" value="1" min="0" step=".1"></div>
 </div></div>
+
 <div class="card"><h2>ドル預金</h2><div class="grid">
 <div class="field"><label>年利（%）</label><input id="dr" type="number" value="3" step=".1"></div>
 <div class="field"><label>税率（%）</label><input id="tax" type="number" value="20.315" step=".001"></div>
-<div class="field"><label>利息</label><div class="small">税引後の年利で複利計算</div></div>
+<div class="field"><label>入出金手数料（%）</label><div class="small">入金・出金をそれぞれ適用</div><input id="df" type="number" value="1" min="0" step=".1"></div>
 </div></div>
+
 <div class="card"><h2>オルカン</h2><div class="grid">
-<div class="field"><label>想定年利（%）</label><input id="ar" type="number" value="6" step=".1"></div>
-<div class="field"><label>信託報酬等（%）</label><input id="af" type="number" value=".0575" step=".001"></div>
-<div class="field"><label>為替</label><div class="small">海外資産部分の為替影響を簡易的に反映</div></div>
+<div class="field"><label>想定株式リターン（年率・税引前）</label><input id="ar" type="number" value="6" step=".1"></div>
+<div class="field"><label>信託報酬等（年率）</label><input id="af" type="number" value=".0575" step=".001"></div>
+<div class="field"><label>為替の扱い</label><div class="small">外貨部分は株式リターンと為替変動を別々に計算。簡易モデルとして外貨比率を100%としています。</div></div>
 </div></div>
-<div class="card"><h2>最終結果</h2><div class="results">
+
+<div class="card"><h2>選択中シナリオ</h2><div class="results">
 <div class="r">モーゲージ<strong id="mout">-</strong></div><div class="r">ドル預金<strong id="dout">-</strong></div><div class="r">オルカン<strong id="aout">-</strong></div>
-</div><p id="fx"></p><p class="small">※比較用のシミュレーションです。実際の商品条件、税制、為替スプレッド、為替の推移等とは異なる場合があります。</p></div>
-<div class="card"><h2>年ごとの推移</h2><table><thead><tr><th>年</th><th>モーゲージ</th><th>ドル預金</th><th>オルカン</th></tr></thead><tbody id="rows"></tbody></table></div>
+</div><p id="fx"></p></div>
+
+<div class="card"><h2>為替シナリオ別の最終資産</h2><table><thead><tr><th>終了時USD/JPY</th><th>モーゲージ</th><th>ドル預金</th><th>オルカン</th></tr></thead><tbody id="scenarioRows"></tbody></table>
+<svg class="chart" id="chart" viewBox="0 0 900 300" role="img" aria-label="為替シナリオ別の最終資産グラフ"></svg>
+<div class="legend"><span class="m"><i class="dot"></i>モーゲージ</span><span class="d"><i class="dot"></i>ドル預金</span><span class="a"><i class="dot"></i>オルカン</span></div></div>
+
+<div class="card"><h2>年ごとの推移（選択中の為替シナリオ）</h2><table><thead><tr><th>年</th><th>モーゲージ</th><th>ドル預金</th><th>オルカン</th></tr></thead><tbody id="rows"></tbody></table></div>
+<p class="small">※比較用の簡易シミュレーションです。実際の商品では、為替スプレッド、金利の変動、預金金利の適用期間、税制、オルカンの地域・通貨構成、モーゲージの契約条件などが異なります。特にオルカンの為替影響は単純化しています。</p>
 </main>
 <script>
-const ids=["monthly","years","fx0","fx1","df","wf","mr","mi","dr","tax","ar","af"];ids.forEach(id=>document.getElementById(id).addEventListener("input",calc));
-const money=n=>Math.round(n).toLocaleString("ja-JP")+"円";
-function calc(){
- const g=id=>+document.getElementById(id).value||0,monthly=Math.max(0,g("monthly")),years=Math.min(60,Math.max(1,g("years")));
- const fx0=Math.max(1,g("fx0")),fx1=Math.max(1,g("fx1")),df=Math.max(0,g("df"))/100,wf=Math.max(0,g("wf"))/100;
- const mm=g("mr")/100,mi=Math.max(0,g("mi")),dAnnual=Math.max(-99,g("dr"))/100*(1-g("tax")/100),aAnnual=(g("ar")-g("af"))/100;
- let m=0,usd=0,a=0,rows="";
- for(let y=1;y<=years;y++){
-  for(let mo=0;mo<12;mo++){m=(m+monthly)*(1+mm);usd=(usd+monthly/fx0*(1-df))*(1+dAnnual/12);a=(a+monthly)*(1+aAnnual/12);}
-  const fx=fx0+(fx1-fx0)*y/years,mv=m*(1-wf)-mi,dv=usd*fx*(1-wf),av=a;
-  rows+=`<tr><td>${y}</td><td>${money(mv)}</td><td>${money(dv)}</td><td>${money(av)}</td></tr>`;
- }
- const mf=m*(1-wf)-mi,dfinal=usd*fx1*(1-wf),afinal=a;
- document.getElementById("mout").textContent=money(mf);document.getElementById("dout").textContent=money(dfinal);document.getElementById("aout").textContent=money(afinal);
- document.getElementById("fx").textContent=`為替：${fx0.toFixed(1)}円 → ${fx1.toFixed(1)}円（${((fx1/fx0-1)*100).toFixed(1)}%）`;
- document.getElementById("rows").innerHTML=rows;
-}
-calc();
+const ids=["monthly","years","fx0","mr","mi","mf","dr","tax","df","ar","af"];ids.forEach(id=>document.getElementById(id).addEventListener("input",calcAll));
+let selected=150;
+function money(n){return Math.round(n).toLocaleString("ja-JP")+"円"}
+function params(){const g=id=>+document.getElementById(id).value||0;return{monthly:Math.max(0,g("monthly")),years:Math.min(60,Math.max(1,g("years"))),fx0:Math.max(1,g("fx0")),mr:g("mr")/100,mi:Math.max(0,g("mi")),mf:Math.max(0,g("mf"))/100,dr:g("dr")/100,tax:Math.max(0,g("tax"))/100,df:Math.max(0,g("df"))/100,ar:g("ar")/100,af:g("af")/100}}
+function simulate(fxEnd){const p=params();let m=0,du=0,a=0,rows=[];const dRate=p.dr*(1-p.tax),aRate=p.ar-p.af;
+for(let y=1;y<=p.years;y++){for(let mo=0;mo<12;mo++){m=(m+p.monthly)*(1+p.mr);du=(du+p.monthly/p.fx0*(1-p.df))*(1+dRate/12);a=(a+p.monthly)*(1+aRate/12)}
+const fx=p.fx0+(fxEnd-p.fx0)*y/p.years;
+rows.push({year:y,m:m*(1-p.mf)-p.mi,d:du*fx*(1-p.df),a:a*fx/p.fx0});}
+const last=rows[rows.length-1];return{m:last.m,d:last.d,a:last.a,rows}}
+function calcAll(){const p=params();const vals=[110,130,150,170,190];if(!vals.includes(selected))selected=p.fx0;document.getElementById("scenarios").innerHTML=vals.map(v=>`<button class="${v===selected?"active":""}" data-fx="${v}">${v}円</button>`).join("");document.querySelectorAll("#scenarios button").forEach(b=>b.onclick=()=>{selected=+b.dataset.fx;calcAll()});
+const s=simulate(selected);document.getElementById("mout").textContent=money(s.m);document.getElementById("dout").textContent=money(s.d);document.getElementById("aout").textContent=money(s.a);document.getElementById("fx").textContent=`為替：${p.fx0.toFixed(1)}円 → ${selected}円（${((selected/p.fx0-1)*100).toFixed(1)}%）`;
+document.getElementById("rows").innerHTML=s.rows.map(r=>`<tr><td>${r.year}</td><td>${money(r.m)}</td><td>${money(r.d)}</td><td>${money(r.a)}</td></tr>`).join("");
+document.getElementById("scenarioRows").innerHTML=vals.map(v=>{const x=simulate(v);return`<tr><td>${v}円</td><td>${money(x.m)}</td><td>${money(x.d)}</td><td>${money(x.a)}</td></tr>`}).join("");draw(vals.map(v=>({fx:v,...simulate(v)})));}
+function draw(data){const svg=document.getElementById("chart"),W=900,H=300,L=60,R=20,T=20,B=45;svg.innerHTML="";const max=Math.max(...data.flatMap(x=>[x.m,x.d,x.a]))*1.08,min=0,x=i=>L+i*(W-L-R)/(data.length-1),y=v=>H-B-(v-min)*(H-T-B)/(max-min||1);const NS="http://www.w3.org/2000/svg";
+function line(key,cls){const path=data.map((d,i)=>(i?"L":"M")+x(i)+" "+y(d[key])).join(" ");const e=document.createElementNS(NS,"path");e.setAttribute("d",path);e.setAttribute("fill","none");e.setAttribute("stroke",cls);e.setAttribute("stroke-width","3");svg.appendChild(e);data.forEach((d,i)=>{const c=document.createElementNS(NS,"circle");c.setAttribute("cx",x(i));c.setAttribute("cy",y(d[key]));c.setAttribute("r","4");c.setAttribute("fill",cls);svg.appendChild(c)})}
+line("m","#555");line("d","#1877d2");line("a","#16834b");data.forEach((d,i)=>{const t=document.createElementNS(NS,"text");t.setAttribute("x",x(i));t.setAttribute("y",H-18);t.setAttribute("text-anchor","middle");t.setAttribute("font-size","12");t.textContent=d.fx+"円";svg.appendChild(t)});}
+calcAll();
 </script></body></html>
